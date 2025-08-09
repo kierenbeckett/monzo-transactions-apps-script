@@ -1,5 +1,5 @@
-var clientId = 'yourclientid';
-var clientSecret = 'yourclientsecret';
+var clientId = null;
+var clientSecret = null;
 var accountId = null;
 var sheetName = 'Sheet1';
 
@@ -9,7 +9,7 @@ function updateTransactions() {
   var scriptProperties = PropertiesService.getScriptProperties();
 
   if (scriptProperties.getProperty('refreshToken') == null) {
-    Logger.info('Refresh token has not yet been set, follow the instructions to set up Monzo authentication');
+    Logger.info('Refresh token needs setting, follow the instructions to set up Monzo authentication');
     return;
   }
 
@@ -36,23 +36,23 @@ function updateTransactions() {
     scriptProperties.setProperty('tokenExpiry', new Date().getTime() + data.expires_in * 1000 - 10 * 60 * 1000);
   }
 
-  do {
-    if (accountId == null) {
-      var url = 'https://api.monzo.com/accounts'
+  if (accountId == null) {
+    var url = 'https://api.monzo.com/accounts'
 
-      var options = {
-        'headers': {'Authorization' : 'Bearer ' + scriptProperties.getProperty('token')},
-      };
-      var data = JSON.parse(UrlFetchApp.fetch(url, options))['accounts'];
+    var options = {
+      'headers': {'Authorization' : 'Bearer ' + scriptProperties.getProperty('token')},
+    };
+    var data = JSON.parse(UrlFetchApp.fetch(url, options))['accounts'];
 
-      Logger.info('Account ID has not yet been set, accounts are:')
-      for (var i = 0; i<data.length; i++) {
-        Logger.info(data[i]['description'] + ' = ' + data[i]['id']);
-      }
-
-      return;
+    Logger.info('Account ID needs setting, accounts are:')
+    for (var i = 0; i<data.length; i++) {
+      Logger.info(data[i]['description'] + ' = ' + data[i]['id']);
     }
 
+    return;
+  }
+
+  do {
     var since = sheet.getRange(sheet.getDataRange().getLastRow(), 1, 1, 1).getValue()
     if (since == '') {
       var weekAgo = new Date();
@@ -136,6 +136,10 @@ function friendlyScheme(scheme) {
 }
 
 function doGet(e) {
+  if (clientId == null || clientSecret == null) {
+    return ContentService.createTextOutput('Client ID and secret need setting, follow the instructions to set up Monzo authentication');
+  }
+
   var scriptProperties = PropertiesService.getScriptProperties();
   var redirectUri = ScriptApp.getService().getUrl();
 
